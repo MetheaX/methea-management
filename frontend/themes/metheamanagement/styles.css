@@ -1,0 +1,15 @@
+@import url('./views/main-view.css');
+@import url('lumo-css-framework/all-classes.css');    html {
+      --lumo-body-text-color: #336699;
+      --lumo-primary-color: #336699;
+      --lumo-primary-text-color: #0058db;
+      --lumo-error-color: hsl(3, 92%, 53%);
+      --lumo-success-color: #369963;
+      --lumo-success-text-color: #369963;
+      --lumo-base-color: #fffff;
+      --lumo-font-family: "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif;
+
+    }
+[theme~="dark"] {
+      background-color: #336699;
+}
