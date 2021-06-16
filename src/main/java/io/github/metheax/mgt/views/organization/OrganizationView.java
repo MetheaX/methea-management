@@ -2,7 +2,8 @@ package io.github.metheax.mgt.views.organization;
 
 import java.util.Optional;
 
-import io.github.metheax.mgt.data.entity.TAccount;
+import io.github.metheax.domain.entity.TAccount;
+import io.github.metheax.mgt.data.service.CustomCrudServiceDataProvider;
 import io.github.metheax.mgt.data.service.TAccountService;
 
 import com.vaadin.flow.component.Component;
@@ -23,40 +24,39 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.vaadin.artur.helpers.CrudServiceDataProvider;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import io.github.metheax.mgt.views.main.MainView;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.component.textfield.TextField;
 
-@Route(value = "app/organization/:tAccountID?/:action?(edit)", layout = MainView.class)
+@Route(value = "app/organization/:id?/:action?(edit)", layout = MainView.class)
 @RouteAlias(value = "", layout = MainView.class)
 @PageTitle("Organization")
 public class OrganizationView extends Div implements BeforeEnterObserver {
 
-    private final String TACCOUNT_ID = "tAccountID";
-    private final String TACCOUNT_EDIT_ROUTE_TEMPLATE = "app/organization/%d/edit";
+    private final String TACCOUNT_ID = "id";
+    private final String TACCOUNT_EDIT_ROUTE_TEMPLATE = "app/organization/%s/edit";
 
     private Grid<TAccount> grid = new Grid<>(TAccount.class, false);
 
-    private TextField firstName;
-    private TextField lastName;
-    private TextField email;
-    private TextField phone;
+    private TextField accountCode;
+    private TextField accountName;
+    private TextField accountNameOth;
+    private TextField accountEmail;
 
     private Button cancel = new Button("Cancel");
     private Button save = new Button("Save");
 
     private BeanValidationBinder<TAccount> binder;
 
-    private TAccount tAccount;
+    private TAccount account;
 
-    private TAccountService tAccountService;
+    private TAccountService accountService;
 
-    public OrganizationView(@Autowired TAccountService tAccountService) {
+    public OrganizationView(@Autowired TAccountService accountService) {
         addClassNames("organization-view", "flex", "flex-col", "h-full");
-        this.tAccountService = tAccountService;
+        this.accountService = accountService;
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
         splitLayout.setSizeFull();
@@ -67,11 +67,11 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("email").setAutoWidth(true);
-        grid.addColumn("phone").setAutoWidth(true);
-        grid.setDataProvider(new CrudServiceDataProvider<>(tAccountService));
+        grid.addColumn("accountCode").setAutoWidth(true);
+        grid.addColumn("accountName").setAutoWidth(true);
+        grid.addColumn("accountNameOth").setAutoWidth(true);
+        grid.addColumn("accountEmail").setAutoWidth(true);
+        grid.setDataProvider(new CustomCrudServiceDataProvider(accountService));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeightFull();
 
@@ -99,12 +99,12 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
 
         save.addClickListener(e -> {
             try {
-                if (this.tAccount == null) {
-                    this.tAccount = new TAccount();
+                if (this.account == null) {
+                    this.account = new TAccount();
                 }
-                binder.writeBean(this.tAccount);
+                binder.writeBean(this.account);
 
-                tAccountService.update(this.tAccount);
+                accountService.update(this.account);
                 clearForm();
                 refreshGrid();
                 Notification.show("TAccount details stored.");
@@ -118,9 +118,9 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        Optional<Integer> tAccountId = event.getRouteParameters().getInteger(TACCOUNT_ID);
+        Optional<String> tAccountId = event.getRouteParameters().get(TACCOUNT_ID);
         if (tAccountId.isPresent()) {
-            Optional<TAccount> tAccountFromBackend = tAccountService.get(tAccountId.get());
+            Optional<TAccount> tAccountFromBackend = accountService.get(tAccountId.get());
             if (tAccountFromBackend.isPresent()) {
                 populateForm(tAccountFromBackend.get());
             } else {
@@ -144,11 +144,11 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        firstName = new TextField("First Name");
-        lastName = new TextField("Last Name");
-        email = new TextField("Email");
-        phone = new TextField("Phone");
-        Component[] fields = new Component[]{firstName, lastName, email, phone};
+        accountCode = new TextField("First Name");
+        accountName = new TextField("Last Name");
+        accountNameOth = new TextField("Email");
+        accountEmail = new TextField("Phone");
+        Component[] fields = new Component[]{accountCode, accountName, accountNameOth, accountEmail};
 
         for (Component field : fields) {
             ((HasStyle) field).addClassName("full-width");
@@ -188,8 +188,8 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
     }
 
     private void populateForm(TAccount value) {
-        this.tAccount = value;
-        binder.readBean(this.tAccount);
+        this.account = value;
+        binder.readBean(this.account);
 
     }
 }

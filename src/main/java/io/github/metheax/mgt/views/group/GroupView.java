@@ -2,7 +2,8 @@ package io.github.metheax.mgt.views.group;
 
 import java.util.Optional;
 
-import io.github.metheax.mgt.data.entity.TGroup;
+import io.github.metheax.domain.entity.TGroup;
+import io.github.metheax.mgt.data.service.CustomCrudServiceDataProvider;
 import io.github.metheax.mgt.data.service.TGroupService;
 
 import com.vaadin.flow.component.Component;
@@ -23,32 +24,30 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.vaadin.artur.helpers.CrudServiceDataProvider;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import io.github.metheax.mgt.views.main.MainView;
 import com.vaadin.flow.component.textfield.TextField;
 
-@Route(value = "app/group/:tGroupID?/:action?(edit)", layout = MainView.class)
+@Route(value = "app/group/:id?/:action?(edit)", layout = MainView.class)
 @PageTitle("Group")
 public class GroupView extends Div implements BeforeEnterObserver {
 
-    private final String TGROUP_ID = "tGroupID";
-    private final String TGROUP_EDIT_ROUTE_TEMPLATE = "app/group/%d/edit";
+    private final String TGROUP_ID = "id";
+    private final String TGROUP_EDIT_ROUTE_TEMPLATE = "app/group/%s/edit";
 
     private Grid<TGroup> grid = new Grid<>(TGroup.class, false);
 
-    private TextField firstName;
-    private TextField lastName;
-    private TextField email;
-    private TextField phone;
+    private TextField groupCode;
+    private TextField groupName;
+    private TextField groupNameOth;
 
     private Button cancel = new Button("Cancel");
     private Button save = new Button("Save");
 
     private BeanValidationBinder<TGroup> binder;
 
-    private TGroup tGroup;
+    private TGroup tGroupTmp;
 
     private TGroupService tGroupService;
 
@@ -65,11 +64,10 @@ public class GroupView extends Div implements BeforeEnterObserver {
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("email").setAutoWidth(true);
-        grid.addColumn("phone").setAutoWidth(true);
-        grid.setDataProvider(new CrudServiceDataProvider<>(tGroupService));
+        grid.addColumn("groupCode").setAutoWidth(true);
+        grid.addColumn("groupName").setAutoWidth(true);
+        grid.addColumn("groupNameOth").setAutoWidth(true);
+        grid.setDataProvider(new CustomCrudServiceDataProvider<>(tGroupService));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeightFull();
 
@@ -97,12 +95,12 @@ public class GroupView extends Div implements BeforeEnterObserver {
 
         save.addClickListener(e -> {
             try {
-                if (this.tGroup == null) {
-                    this.tGroup = new TGroup();
+                if (this.tGroupTmp == null) {
+                    this.tGroupTmp = new TGroup();
                 }
-                binder.writeBean(this.tGroup);
+                binder.writeBean(this.tGroupTmp);
 
-                tGroupService.update(this.tGroup);
+                tGroupService.update(this.tGroupTmp);
                 clearForm();
                 refreshGrid();
                 Notification.show("TGroup details stored.");
@@ -116,7 +114,7 @@ public class GroupView extends Div implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        Optional<Integer> tGroupId = event.getRouteParameters().getInteger(TGROUP_ID);
+        Optional<String> tGroupId = event.getRouteParameters().get(TGROUP_ID);
         if (tGroupId.isPresent()) {
             Optional<TGroup> tGroupFromBackend = tGroupService.get(tGroupId.get());
             if (tGroupFromBackend.isPresent()) {
@@ -142,11 +140,10 @@ public class GroupView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        firstName = new TextField("First Name");
-        lastName = new TextField("Last Name");
-        email = new TextField("Email");
-        phone = new TextField("Phone");
-        Component[] fields = new Component[]{firstName, lastName, email, phone};
+        groupCode = new TextField("First Name");
+        groupName = new TextField("Last Name");
+        groupNameOth = new TextField("Email");
+        Component[] fields = new Component[]{groupCode, groupName, groupNameOth};
 
         for (Component field : fields) {
             ((HasStyle) field).addClassName("full-width");
@@ -186,8 +183,8 @@ public class GroupView extends Div implements BeforeEnterObserver {
     }
 
     private void populateForm(TGroup value) {
-        this.tGroup = value;
-        binder.readBean(this.tGroup);
+        this.tGroupTmp = value;
+        binder.readBean(this.tGroupTmp);
 
     }
 }
