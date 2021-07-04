@@ -1,28 +1,18 @@
 package io.github.metheax.mgt.views.main;
 
-import java.util.Optional;
-
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.avatar.Avatar;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.contextmenu.SubMenu;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.tabs.Tab;
-import com.vaadin.flow.component.tabs.Tabs;
-import com.vaadin.flow.component.tabs.TabsVariant;
-import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.PageTitle;
-import io.github.metheax.mgt.views.main.MainView;
-import io.github.metheax.mgt.views.organization.OrganizationView;
-import io.github.metheax.mgt.views.group.GroupView;
 
 /**
  * The main view is a top-level placeholder for other views.
@@ -31,14 +21,8 @@ import io.github.metheax.mgt.views.group.GroupView;
 @Theme(themeFolder = "metheamanagement")
 public class MainView extends AppLayout {
 
-    private final Tabs menu;
-    private H1 viewTitle;
-
     public MainView() {
-        setPrimarySection(Section.DRAWER);
         addToNavbar(true, createHeaderContent());
-        menu = createMenu();
-        addToDrawer(createDrawerContent(menu));
     }
 
     private Component createHeaderContent() {
@@ -48,64 +32,30 @@ public class MainView extends AppLayout {
         layout.setWidthFull();
         layout.setSpacing(false);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
-        layout.add(new DrawerToggle());
-        viewTitle = new H1();
-        layout.add(viewTitle);
-        layout.add(new Avatar());
+        Icon icon = VaadinIcon.CLUSTER.create();
+        layout.add(new Button("Home", icon));
+
+        MenuBar menuBar = new MenuBar();
+
+        menuBar.setOpenOnHover(true);
+
+        MenuItem accessControl = menuBar.addItem("Access Control");
+        MenuItem systemConfiguration = menuBar.addItem("System Configuration");
+        menuBar.addItem("Sign Out", e -> this.getParent().flatMap(Component::getUI).orElseGet(null).getPage().setLocation("/logout"));
+
+        SubMenu projectSubMenu = accessControl.getSubMenu();
+        projectSubMenu.addItem("Account").addClickListener(e -> {
+            this.getUI().ifPresent(ui -> ui.navigate("app/organization"));
+        });
+        projectSubMenu.addItem("Group").addClickListener(e -> {
+            this.getUI().ifPresent(ui -> ui.navigate("app/group"));
+        });
+
+        systemConfiguration.getSubMenu().addItem("Scheduler");
+        systemConfiguration.getSubMenu().addItem("Sys Param");
+
+        layout.add(menuBar);
+        layout.add(new Avatar("Methea"));
         return layout;
-    }
-
-    private Component createDrawerContent(Tabs menu) {
-        VerticalLayout layout = new VerticalLayout();
-        layout.setClassName("sidemenu-menu");
-        layout.setSizeFull();
-        layout.setPadding(false);
-        layout.setSpacing(false);
-        layout.getThemeList().set("spacing-s", true);
-        layout.setAlignItems(FlexComponent.Alignment.STRETCH);
-        HorizontalLayout logoLayout = new HorizontalLayout();
-        logoLayout.setId("logo");
-        logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-        logoLayout.add(new Image("images/logo.png", "Methea Management logo"));
-        logoLayout.add(new H1("Methea Management"));
-        layout.add(logoLayout, menu);
-        return layout;
-    }
-
-    private Tabs createMenu() {
-        final Tabs tabs = new Tabs();
-        tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        tabs.addThemeVariants(TabsVariant.LUMO_MINIMAL);
-        tabs.setId("tabs");
-        tabs.add(createMenuItems());
-        return tabs;
-    }
-
-    private Component[] createMenuItems() {
-        return new Tab[]{createTab("Organization", OrganizationView.class), createTab("Group", GroupView.class)};
-    }
-
-    private static Tab createTab(String text, Class<? extends Component> navigationTarget) {
-        final Tab tab = new Tab();
-        tab.add(new RouterLink(text, navigationTarget));
-        ComponentUtil.setData(tab, Class.class, navigationTarget);
-        return tab;
-    }
-
-    @Override
-    protected void afterNavigation() {
-        super.afterNavigation();
-        getTabForComponent(getContent()).ifPresent(menu::setSelectedTab);
-        viewTitle.setText(getCurrentPageTitle());
-    }
-
-    private Optional<Tab> getTabForComponent(Component component) {
-        return menu.getChildren().filter(tab -> ComponentUtil.getData(tab, Class.class).equals(component.getClass()))
-                .findFirst().map(Tab.class::cast);
-    }
-
-    private String getCurrentPageTitle() {
-        PageTitle title = getContent().getClass().getAnnotation(PageTitle.class);
-        return title == null ? "" : title.value();
     }
 }

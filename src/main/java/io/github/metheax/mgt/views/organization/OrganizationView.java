@@ -1,7 +1,11 @@
 package io.github.metheax.mgt.views.organization;
 
 import java.util.Optional;
+import java.util.UUID;
 
+import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import io.github.metheax.domain.entity.TAccount;
 import io.github.metheax.mgt.data.service.CustomCrudServiceDataProvider;
 import io.github.metheax.mgt.data.service.TAccountService;
@@ -44,6 +48,7 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
     private TextField accountName;
     private TextField accountNameOth;
     private TextField accountEmail;
+    private TextArea accountAddress;
 
     private Button cancel = new Button("Cancel");
     private Button save = new Button("Save");
@@ -71,6 +76,37 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
         grid.addColumn("accountName").setAutoWidth(true);
         grid.addColumn("accountNameOth").setAutoWidth(true);
         grid.addColumn("accountEmail").setAutoWidth(true);
+        grid.addColumn(new ComponentRenderer<>(o -> {
+            Label label;
+            label = new Label("Inactive");
+            label.setClassName("inactive-badge");
+            if ("A".equals(o.getStatus())) {
+                label = new Label("Active");
+                label.setClassName("active-badge");
+            }
+            return label;
+        })).setHeader("Status");
+        grid.addColumn(new ComponentRenderer<>(account -> {
+            // button for saving the name to backend
+            if ("I".equals(account.getStatus())) {
+                Button enable = new Button("Enable", event -> {
+                    accountService.enableAccount(account);
+                    this.grid.getDataProvider().refreshAll();
+                    Notification.show(account.getAccountName() + " has been enable!");
+                });
+                HorizontalLayout buttons = new HorizontalLayout(enable);
+                return buttons;
+            } else {
+                // button that removes the item
+                Button disable = new Button("Disable", event -> {
+                    accountService.disableAccount(account);
+                    this.grid.getDataProvider().refreshAll();
+                    Notification.show(account.getAccountName() + " has been disable!");
+                });
+                HorizontalLayout buttons = new HorizontalLayout(disable);
+                return buttons;
+            }
+        })).setHeader("Actions");
         grid.setDataProvider(new CustomCrudServiceDataProvider(accountService));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeightFull();
@@ -101,6 +137,8 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
             try {
                 if (this.account == null) {
                     this.account = new TAccount();
+                    this.account.setId(UUID.randomUUID().toString());
+                    this.account.setStatus("A");
                 }
                 binder.writeBean(this.account);
 
@@ -113,7 +151,6 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
                 Notification.show("An exception happened while trying to store the tAccount details.");
             }
         });
-
     }
 
     @Override
@@ -124,7 +161,7 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
             if (tAccountFromBackend.isPresent()) {
                 populateForm(tAccountFromBackend.get());
             } else {
-                Notification.show(String.format("The requested tAccount was not found, ID = %d", tAccountId.get()),
+                Notification.show(String.format("The requested tAccount was not found, ID = %s", tAccountId.get()),
                         3000, Notification.Position.BOTTOM_START);
                 // when a row is selected but the data is no longer available,
                 // refresh grid
@@ -144,11 +181,12 @@ public class OrganizationView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        accountCode = new TextField("First Name");
-        accountName = new TextField("Last Name");
-        accountNameOth = new TextField("Email");
-        accountEmail = new TextField("Phone");
-        Component[] fields = new Component[]{accountCode, accountName, accountNameOth, accountEmail};
+        accountCode = new TextField("Code");
+        accountName = new TextField("Name");
+        accountNameOth = new TextField("Name Oth");
+        accountEmail = new TextField("Email");
+        accountAddress = new TextArea("Address");
+        Component[] fields = new Component[]{accountCode, accountName, accountNameOth, accountEmail, accountAddress};
 
         for (Component field : fields) {
             ((HasStyle) field).addClassName("full-width");

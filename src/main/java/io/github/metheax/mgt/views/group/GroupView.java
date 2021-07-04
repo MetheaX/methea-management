@@ -1,9 +1,15 @@
 package io.github.metheax.mgt.views.group;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.textfield.TextArea;
+import io.github.metheax.domain.entity.TAccount;
 import io.github.metheax.domain.entity.TGroup;
 import io.github.metheax.mgt.data.service.CustomCrudServiceDataProvider;
+import io.github.metheax.mgt.data.service.TAccountService;
 import io.github.metheax.mgt.data.service.TGroupService;
 
 import com.vaadin.flow.component.Component;
@@ -41,19 +47,23 @@ public class GroupView extends Div implements BeforeEnterObserver {
     private TextField groupCode;
     private TextField groupName;
     private TextField groupNameOth;
+    private ComboBox<TAccount> account;
+    private TextArea remarks;
 
     private Button cancel = new Button("Cancel");
     private Button save = new Button("Save");
 
     private BeanValidationBinder<TGroup> binder;
 
-    private TGroup tGroupTmp;
+    private TGroup group;
 
     private TGroupService tGroupService;
+    private TAccountService accountService;
 
-    public GroupView(@Autowired TGroupService tGroupService) {
+    public GroupView(@Autowired TGroupService tGroupService, @Autowired TAccountService accountService) {
         addClassNames("group-view", "flex", "flex-col", "h-full");
         this.tGroupService = tGroupService;
+        this.accountService = accountService;
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
         splitLayout.setSizeFull();
@@ -64,6 +74,10 @@ public class GroupView extends Div implements BeforeEnterObserver {
         add(splitLayout);
 
         // Configure Grid
+        grid.addColumn(group -> {
+            TAccount account = group.getAccount();
+            return account == null ? "-" : account.getAccountName();
+        }).setHeader("Account");
         grid.addColumn("groupCode").setAutoWidth(true);
         grid.addColumn("groupName").setAutoWidth(true);
         grid.addColumn("groupNameOth").setAutoWidth(true);
@@ -95,12 +109,14 @@ public class GroupView extends Div implements BeforeEnterObserver {
 
         save.addClickListener(e -> {
             try {
-                if (this.tGroupTmp == null) {
-                    this.tGroupTmp = new TGroup();
+                if (this.group == null) {
+                    this.group = new TGroup();
+                    this.group.setId(UUID.randomUUID().toString());
+                    this.group.setStatus("A");
                 }
-                binder.writeBean(this.tGroupTmp);
+                binder.writeBean(this.group);
 
-                tGroupService.update(this.tGroupTmp);
+                tGroupService.update(this.group);
                 clearForm();
                 refreshGrid();
                 Notification.show("TGroup details stored.");
@@ -109,7 +125,6 @@ public class GroupView extends Div implements BeforeEnterObserver {
                 Notification.show("An exception happened while trying to store the tGroup details.");
             }
         });
-
     }
 
     @Override
@@ -120,7 +135,7 @@ public class GroupView extends Div implements BeforeEnterObserver {
             if (tGroupFromBackend.isPresent()) {
                 populateForm(tGroupFromBackend.get());
             } else {
-                Notification.show(String.format("The requested tGroup was not found, ID = %d", tGroupId.get()), 3000,
+                Notification.show(String.format("The requested tGroup was not found, ID = %s", tGroupId.get()), 3000,
                         Notification.Position.BOTTOM_START);
                 // when a row is selected but the data is no longer available,
                 // refresh grid
@@ -140,10 +155,18 @@ public class GroupView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        groupCode = new TextField("First Name");
-        groupName = new TextField("Last Name");
-        groupNameOth = new TextField("Email");
-        Component[] fields = new Component[]{groupCode, groupName, groupNameOth};
+        groupCode = new TextField("Group Code");
+        groupName = new TextField("Group Name");
+        groupNameOth = new TextField("Group Name Oth");
+        account = new ComboBox<>();
+        account.setLabel("Account");
+        List<TAccount> accounts = accountService.getAllActiveAccount();
+
+        account.setItemLabelGenerator(TAccount::getAccountName);
+        account.setItems(accounts);
+        account.setClassName("overlay-dropdown");
+        remarks = new TextArea("Remarks");
+        Component[] fields = new Component[]{account, groupCode, groupName, groupNameOth, remarks};
 
         for (Component field : fields) {
             ((HasStyle) field).addClassName("full-width");
@@ -183,8 +206,8 @@ public class GroupView extends Div implements BeforeEnterObserver {
     }
 
     private void populateForm(TGroup value) {
-        this.tGroupTmp = value;
-        binder.readBean(this.tGroupTmp);
+        this.group = value;
+        binder.readBean(this.group);
 
     }
 }
